@@ -35,7 +35,7 @@ export const SUPABASE_ANON_KEY =
 
 // App configuration
 export const APP_NAME = process.env.EXPO_PUBLIC_APP_NAME || "Tamagotchi";
-export const APP_VERSION = process.env.EXPO_PUBLIC_APP_VERSION || "1.0.0";
+export const APP_VERSION = process.env.EXPO_PUBLIC_APP_VERSION || "0.1.0";
 
 // Other environment variables
 export const IS_DEVELOPMENT = __DEV__;

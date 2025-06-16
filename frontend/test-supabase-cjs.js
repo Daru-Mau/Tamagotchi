@@ -3,44 +3,109 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
-// Find and read the env.ts file to extract credentials
-const ENV_FILE_PATH = path.join(__dirname, "src", "config", "env.ts");
-
-console.log(`Reading environment from: ${ENV_FILE_PATH}`);
-
-// Read and parse the env.ts file to extract Supabase credentials
-let SUPABASE_URL = "";
-let SUPABASE_ANON_KEY = "";
-
+// Check if dotenv is installed
 try {
-  const envFileContent = fs.readFileSync(ENV_FILE_PATH, "utf8");
-
-  // Use regex to extract the URL and key
-  const urlMatch = envFileContent.match(
-    /export const SUPABASE_URL\s*=\s*["'](.+?)["']/
-  );
-  const keyMatch = envFileContent.match(
-    /export const SUPABASE_ANON_KEY\s*=\s*["'](.+?)["']/
-  );
-
-  if (urlMatch && urlMatch[1]) {
-    SUPABASE_URL = urlMatch[1];
-  } else {
-    console.error("❌ Could not find SUPABASE_URL in env.ts");
-    console.error("Please make sure your env.ts file has the correct format.");
-    process.exit(1);
-  }
-
-  if (keyMatch && keyMatch[1]) {
-    SUPABASE_ANON_KEY = keyMatch[1];
-  } else {
-    console.error("❌ Could not find SUPABASE_ANON_KEY in env.ts");
-    console.error("Please make sure your env.ts file has the correct format.");
-    process.exit(1);
-  }
+  require("dotenv").config();
 } catch (error) {
-  console.error(`❌ Error reading env.ts file: ${error.message}`);
-  console.error("Please make sure the file exists at: " + ENV_FILE_PATH);
+  console.log("dotenv module not found, skipping .env loading");
+}
+
+// Find and read env files to extract credentials
+const ENV_FILE_PATH = path.join(__dirname, ".env");
+const ENV_TS_PATH = path.join(__dirname, "src", "config", "env.ts");
+
+console.log(
+  `Looking for credentials in environment variables, .env, and env.ts...`
+);
+
+// Read credentials from environment variables or .env file
+let SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
+let SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
+
+// If environment variables are not set, try to read from .env file directly
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  try {
+    console.log(`Reading from .env file: ${ENV_FILE_PATH}`);
+    const envFileContent = fs.readFileSync(ENV_FILE_PATH, "utf8");
+
+    // Parse .env file content
+    const envLines = envFileContent.split("\n");
+    for (const line of envLines) {
+      if (line.startsWith("EXPO_PUBLIC_SUPABASE_URL=")) {
+        SUPABASE_URL = line.split("=")[1].trim();
+      }
+      if (line.startsWith("EXPO_PUBLIC_SUPABASE_ANON_KEY=")) {
+        SUPABASE_ANON_KEY = line.split("=")[1].trim();
+      }
+    }
+  } catch (err) {
+    console.log("Could not read .env file, trying env.ts as fallback...");
+  }
+}
+
+// If still not found, try to read from env.ts as a fallback
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  try {
+    console.log(`Reading from env.ts file: ${ENV_TS_PATH}`);
+    const envTsContent = fs.readFileSync(ENV_TS_PATH, "utf8");
+    // Look for fallback values or any values we can extract
+    const urlFallbackMatch = envTsContent.match(
+      /fallbackSupabaseUrl\s*=\s*["'](.+?)["']/
+    );
+    const keyFallbackMatch = envTsContent.match(
+      /fallbackSupabaseKey\s*=\s*["'](.+?)["']/
+    );
+
+    // Also try direct constant declarations as a last resort
+    const urlDirectMatch = envTsContent.match(
+      /SUPABASE_URL\s*=\s*["'](.+?)["']/
+    );
+    const keyDirectMatch = envTsContent.match(
+      /SUPABASE_ANON_KEY\s*=\s*["'](.+?)["']/
+    );
+
+    if (
+      urlFallbackMatch &&
+      urlFallbackMatch[1] &&
+      urlFallbackMatch[1] !== "YOUR_SUPABASE_URL"
+    ) {
+      SUPABASE_URL = urlFallbackMatch[1];
+    } else if (urlDirectMatch && urlDirectMatch[1]) {
+      SUPABASE_URL = urlDirectMatch[1];
+    }
+
+    if (
+      keyFallbackMatch &&
+      keyFallbackMatch[1] &&
+      keyFallbackMatch[1] !== "YOUR_SUPABASE_ANON_KEY"
+    ) {
+      SUPABASE_ANON_KEY = keyFallbackMatch[1];
+    } else if (keyDirectMatch && keyDirectMatch[1]) {
+      SUPABASE_ANON_KEY = keyDirectMatch[1];
+    }
+  } catch (err) {
+    console.error("Failed to read env.ts file:", err.message);
+  }
+}
+
+// Check if we've found valid credentials
+if (!SUPABASE_URL || SUPABASE_URL === "YOUR_SUPABASE_URL") {
+  console.error(
+    "❌ Could not find valid SUPABASE_URL in environment variables, .env or env.ts"
+  );
+  console.log(
+    "Please make sure your .env file has EXPO_PUBLIC_SUPABASE_URL set."
+  );
+  process.exit(1);
+}
+
+if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY") {
+  console.error(
+    "❌ Could not find valid SUPABASE_ANON_KEY in environment variables, .env or env.ts"
+  );
+  console.log(
+    "Please make sure your .env file has EXPO_PUBLIC_SUPABASE_ANON_KEY set."
+  );
   process.exit(1);
 }
 
@@ -156,7 +221,7 @@ testSupabase().then((success) => {
   if (!success) {
     console.log("\n🛠️ Troubleshooting tips:");
     console.log(
-      "  1. Check your SUPABASE_URL and SUPABASE_ANON_KEY in src/config/env.ts"
+      "  1. Check your EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env"
     );
     console.log("  2. Make sure your Supabase project is running");
     console.log("  3. Verify that your tables exist in your Supabase database");
