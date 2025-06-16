@@ -1,14 +1,18 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Provider as PaperProvider } from "react-native-paper";
 import { Provider as StoreProvider } from "react-redux";
 import { store } from "./store";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import { AuthApi } from "./services/supabase";
 
 // Screens
 import HomeScreen from "./screens/HomeScreen";
 import GameScreen from "./screens/GameScreen";
+import LoginScreen from "./screens/LoginScreen";
 
 // Navigation
 const Stack = createStackNavigator();
@@ -26,13 +30,42 @@ const theme = {
 };
 
 const App = () => {
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Keep the splash screen visible while we fetch resources
+        await SplashScreen.preventAutoHideAsync();
+
+        // Check if user is already authenticated
+        const session = await AuthApi.getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.warn("Error preparing app:", error);
+      } finally {
+        // Tell the application to render
+        setAppIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
+
+  if (!appIsReady) {
+    return null;
+  }
+
   return (
     <StoreProvider store={store}>
       <PaperProvider theme={theme}>
         <SafeAreaProvider>
           <NavigationContainer>
+            <StatusBar style="light" />
             <Stack.Navigator
-              initialRouteName="Home"
+              initialRouteName={isAuthenticated ? "Home" : "Login"}
               screenOptions={{
                 headerStyle: {
                   backgroundColor: theme.colors.primary,
@@ -43,6 +76,14 @@ const App = () => {
                 },
               }}
             >
+              <Stack.Screen
+                name="Login"
+                component={LoginScreen}
+                options={{
+                  title: "Tamagotchi Login",
+                  headerShown: false,
+                }}
+              />
               <Stack.Screen
                 name="Home"
                 component={HomeScreen}
