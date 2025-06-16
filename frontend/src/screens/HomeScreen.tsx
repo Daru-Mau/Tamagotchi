@@ -128,7 +128,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <Button mode="contained" onPress={() => dispatch(setError(null))}>
+          <Button mode="contained" onPress={() => dispatch(setError(""))}>
             Dismiss
           </Button>
         </View>

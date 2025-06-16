@@ -41,7 +41,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
         // Show success message or automatically log in
         alert("Account created! Please sign in.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
       setError(error.message || "Authentication failed");
     } finally {

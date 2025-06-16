@@ -1,8 +1,29 @@
 import { Pet } from '../store';
-import { SupabasePetApi, CreatePetDto, UpdatePetDto } from './supabase';
+import { 
+  SupabasePetApi, 
+  SupabasePetInteractionApi, 
+  CreatePetDto, 
+  UpdatePetDto,
+  CreatePetInteractionDto
+} from './supabase';
 
 // Export types from supabase service
-export { CreatePetDto, UpdatePetDto };
+export { CreatePetDto, UpdatePetDto, CreatePetInteractionDto };
+
+// Define the PetInteraction type
+export interface PetInteraction {
+  id: string;
+  petId: string;
+  type: string;
+  pointsChange: number;
+  createdAt: string;
+  metadata?: Record<string, any>;
+}
+
+// Define the RecentInteraction type with pet name
+export interface RecentInteraction extends PetInteraction {
+  petName: string;
+}
 
 // Api service methods - now using Supabase
 export const PetApi = {
@@ -39,5 +60,20 @@ export const PetApi = {
   // Play with a pet
   playWithPet: async (petId: string, time: number): Promise<Pet> => {
     return SupabasePetApi.playWithPet(petId, time);
+  },
+
+  // Get all interactions for a pet
+  fetchPetInteractions: async (petId: string): Promise<PetInteraction[]> => {
+    return SupabasePetInteractionApi.fetchPetInteractions(petId);
+  },
+
+  // Create a new interaction for a pet
+  createPetInteraction: async (interactionData: CreatePetInteractionDto): Promise<PetInteraction> => {
+    return SupabasePetInteractionApi.createPetInteraction(interactionData);
+  },
+
+  // Get recent interactions for all pets
+  fetchRecentInteractions: async (): Promise<RecentInteraction[]> => {
+    return SupabasePetInteractionApi.fetchRecentInteractions();
   }
 };

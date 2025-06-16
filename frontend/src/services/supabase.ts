@@ -1,13 +1,14 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/env';
 
-// TODO: Replace with your actual Supabase URL and anon key from your Supabase project dashboard
-// Visit https://supabase.com/dashboard to get these values after creating a project
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+// Using environment variables from config/env.ts
+// To set up your Supabase project:
+// 1. Create a project at https://supabase.com/dashboard
+// 2. Update the values in src/config/env.ts with your credentials
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
@@ -28,6 +29,24 @@ export type SupabasePet = {
   last_interaction: string;
   user_id: string;
 };
+
+// Create a type for the pet interaction in Supabase
+export type SupabasePetInteraction = {
+  id: string;
+  pet_id: string;
+  interaction_type: 'feed' | 'play' | 'clean' | 'sleep' | string;
+  points_change: number;
+  created_at: string;
+  metadata?: Record<string, any>;
+};
+
+// Create a type for creating a new pet interaction
+export interface CreatePetInteractionDto {
+  pet_id: string;
+  interaction_type: 'feed' | 'play' | 'clean' | 'sleep' | string;
+  points_change: number;
+  metadata?: Record<string, any>;
+}
 
 // Create a type for the pet creation
 export interface CreatePetDto {
@@ -232,6 +251,92 @@ export const SupabasePetApi = {
       return mapSupabasePetToPet(data);
     } catch (error) {
       console.error(`Error playing with pet ${petId}:`, error);
+      throw error;
+    }
+  },
+};
+
+// Convert Supabase pet interaction to frontend PetInteraction
+const mapSupabasePetInteractionToPetInteraction = (interaction: SupabasePetInteraction) => {
+  return {
+    id: interaction.id,
+    petId: interaction.pet_id,
+    type: interaction.interaction_type,
+    pointsChange: interaction.points_change,
+    createdAt: interaction.created_at,
+    metadata: interaction.metadata || {},
+  };
+};
+
+// Supabase API methods for pet interactions
+export const SupabasePetInteractionApi = {
+  // Create a new interaction for a pet
+  createInteraction: async (interactionData: CreatePetInteractionDto) => {
+    try {
+      const { data, error } = await supabase
+        .from('pet_interactions')
+        .insert([{
+          pet_id: interactionData.pet_id,
+          interaction_type: interactionData.interaction_type,
+          points_change: interactionData.points_change,
+          metadata: interactionData.metadata || {},
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return mapSupabasePetInteractionToPetInteraction(data);
+    } catch (error) {
+      console.error('Error creating pet interaction:', error);
+      throw error;
+    }
+  },
+
+  // Get all interactions for a specific pet
+  fetchPetInteractions: async (petId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('pet_interactions')
+        .select('*')
+        .eq('pet_id', petId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map(mapSupabasePetInteractionToPetInteraction);
+    } catch (error) {
+      console.error('Error fetching pet interactions:', error);
+      throw error;
+    }
+  },
+
+  // Get recent interactions across all user's pets
+  fetchRecentInteractions: async (limit = 10) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('recent_pet_interactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(limit);
+      
+      if (error) throw error;
+      
+      return data.map(interaction => ({
+        id: interaction.interaction_id,
+        petId: interaction.pet_id,
+        petName: interaction.pet_name,
+        type: interaction.interaction_type,
+        pointsChange: interaction.points_change,
+        createdAt: interaction.created_at,
+        metadata: interaction.metadata || {},
+      }));
+    } catch (error) {
+      console.error('Error fetching recent interactions:', error);
       throw error;
     }
   }
