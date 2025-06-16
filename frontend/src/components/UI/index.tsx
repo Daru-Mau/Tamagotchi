@@ -1,22 +1,22 @@
 import React from 'react';
+import { Button as PaperButton } from 'react-native-paper';
+import StatusBar from './StatusBar';
 
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (props) => {
-    return (
-        <button {...props} className="ui-button">
-            {props.children}
-        </button>
-    );
+// Export all UI components
+export { StatusBar };
+
+// Button with default styling for the app
+export const Button = ({ 
+  mode = 'contained', 
+  color = '#6200ee',
+  ...props 
+}) => {
+  return (
+    <PaperButton
+      mode={mode}
+      buttonColor={color}
+      {...props}
+    />
+  );
 };
-
-export const Modal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose, children }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="ui-modal">
-            <div className="modal-content">
-                <button onClick={onClose} className="close-button">Close</button>
-                {children}
-            </div>
-        </div>
-    );
 };

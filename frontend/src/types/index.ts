@@ -1,20 +1,39 @@
 export type Pet = {
   id: string;
   name: string;
+  petType: string;
   age: number;
   happiness: number;
   hunger: number;
-  health: number;
+  createdAt: string;
+  lastInteraction: string;
 };
 
-export type GameState = {
+export type PetState = {
   pets: Pet[];
-  currentPetId: string | null;
-  isGameActive: boolean;
+  activePetId: string | null;
+  loading: boolean;
+  error: string | null;
 };
 
 export interface ApiResponse<T> {
   data: T;
-  message: string;
+  message?: string;
   success: boolean;
+}
+
+export interface CreatePetDto {
+  name: string;
+  pet_type: string;
+  age?: number;
+  happiness?: number;
+  hunger?: number;
+}
+
+export interface UpdatePetDto {
+  name?: string;
+  pet_type?: string;
+  age?: number;
+  happiness?: number;
+  hunger?: number;
 }

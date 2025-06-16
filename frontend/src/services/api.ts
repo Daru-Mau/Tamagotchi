@@ -1,42 +1,112 @@
 import axios from 'axios';
+import { Pet } from '../store';
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Adjust the base URL as needed
+// Use localhost for development, but should be updated for production
+const API_BASE_URL = 'http://localhost:5000/api';
 
-export const fetchPets = async () => {
+// Type for creating a new pet
+interface CreatePetDto {
+  name: string;
+  pet_type: string;
+  age?: number;
+  happiness?: number;
+  hunger?: number;
+}
+
+// Type for updating a pet
+interface UpdatePetDto {
+  name?: string;
+  pet_type?: string;
+  age?: number;
+  happiness?: number;
+  hunger?: number;
+}
+
+// Configure axios
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+});
+
+// Api service methods
+export const PetApi = {
+  // Get all pets
+  fetchPets: async (): Promise<Pet[]> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/pets`);
-        return response.data;
+      const response = await api.get('/pets');
+      return response.data;
     } catch (error) {
-        console.error('Error fetching pets:', error);
-        throw error;
+      console.error('Error fetching pets:', error);
+      throw error;
     }
-};
+  },
 
-export const createPet = async (petData) => {
+  // Get a specific pet by ID
+  fetchPetById: async (petId: string): Promise<Pet> => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/pets`, petData);
-        return response.data;
+      const response = await api.get(`/pets/${petId}`);
+      return response.data;
     } catch (error) {
-        console.error('Error creating pet:', error);
-        throw error;
+      console.error(`Error fetching pet ${petId}:`, error);
+      throw error;
     }
-};
+  },
 
-export const updatePet = async (petId, petData) => {
+  // Create a new pet
+  createPet: async (petData: CreatePetDto): Promise<Pet> => {
     try {
-        const response = await axios.put(`${API_BASE_URL}/pets/${petId}`, petData);
-        return response.data;
+      const response = await api.post('/pets', petData);
+      return response.data;
     } catch (error) {
-        console.error('Error updating pet:', error);
-        throw error;
+      console.error('Error creating pet:', error);
+      throw error;
     }
-};
+  },
 
-export const deletePet = async (petId) => {
+  // Update an existing pet
+  updatePet: async (petId: string, petData: UpdatePetDto): Promise<Pet> => {
     try {
-        await axios.delete(`${API_BASE_URL}/pets/${petId}`);
+      const response = await api.put(`/pets/${petId}`, petData);
+      return response.data;
     } catch (error) {
-        console.error('Error deleting pet:', error);
-        throw error;
+      console.error(`Error updating pet ${petId}:`, error);
+      throw error;
     }
+  },
+
+  // Delete a pet
+  deletePet: async (petId: string): Promise<void> => {
+    try {
+      await api.delete(`/pets/${petId}`);
+    } catch (error) {
+      console.error(`Error deleting pet ${petId}:`, error);
+      throw error;
+    }
+  },
+
+  // Feed a pet
+  feedPet: async (petId: string, amount: number): Promise<Pet> => {
+    try {
+      const response = await api.post(`/pets/${petId}/feed`, { amount });
+      return response.data;
+    } catch (error) {
+      console.error(`Error feeding pet ${petId}:`, error);
+      throw error;
+    }
+  },
+
+  // Play with a pet
+  playWithPet: async (petId: string, time: number): Promise<Pet> => {
+    try {
+      const response = await api.post(`/pets/${petId}/play`, { time });
+      return response.data;
+    } catch (error) {
+      console.error(`Error playing with pet ${petId}:`, error);
+      throw error;
+    }
+  }
 };
