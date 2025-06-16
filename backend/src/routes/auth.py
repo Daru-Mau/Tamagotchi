@@ -21,10 +21,15 @@ def generate_token(user_id):
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1),
             'iat': datetime.datetime.utcnow(),
             'sub': user_id
-        }
+        }        # Secret key should always come from environment variables, never hardcoded
+        # If JWT_SECRET_KEY is not set, raise an error instead of using a default
+        jwt_secret = os.environ.get('JWT_SECRET_KEY')
+        if not jwt_secret:
+            raise ValueError("JWT_SECRET_KEY environment variable is not set")
+
         return jwt.encode(
             payload,
-            os.environ.get('JWT_SECRET_KEY', 'Tamagotchi_JWT_Secret_2025'),
+            jwt_secret,
             algorithm='HS256'
         )
     except Exception as e:
@@ -47,11 +52,15 @@ def token_required(f):
         if not token:
             return jsonify({'message': 'Authentication token is missing!'}), 401
 
-        try:
-            # Decode and validate the token
+        try:            # Decode and validate the token
+            # Secret key should always come from environment variables, never hardcoded
+            jwt_secret = os.environ.get('JWT_SECRET_KEY')
+            if not jwt_secret:
+                return jsonify({'message': 'Server configuration error: JWT_SECRET_KEY not set'}), 500
+
             payload = jwt.decode(
                 token,
-                os.environ.get('JWT_SECRET_KEY', 'Tamagotchi_JWT_Secret_2025'),
+                jwt_secret,
                 algorithms=['HS256']
             )
             user_id = payload['sub']
